@@ -11,11 +11,11 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <inttypes.h>
-
 #include <signal.h>
 #include <sys/signalfd.h>
-
-
+#include <unistd.h>
+#include <stdbool.h>
+#include <arpa/inet.h>
 #include <gtk/gtk.h>
 
 
@@ -35,16 +35,38 @@
   
   int sockfd, newsockfd=-1; // descripteurs de socket
   int addr_size;	 // taille adresse
-  struct sockaddr *their_addr;	// structure pour stocker adresse adversaire
+  struct sockaddr *their_addr, *serveinfo, *p;	// structure pour stocker adresse adversaire
 
   fd_set master, read_fds, write_fds;	// ensembles de socket pour toutes les sockets actives avec select
   int fdmax;			// utilise pour select
 
+  typedef struct{
+    int socket; 
+  } threadArgs;
+
+  
+  typedef struct {
+      char data[STRING_SIZE];
+      int code; // or real size of data
+  } query;
 
 /* Variables globales associées à l'interface graphique */
   GtkBuilder  *  p_builder   = NULL;
   GError      *  p_err       = NULL;
    
+
+// nos fonctions
+
+struct sockaddr * createSoc(int port) {
+  struct sockaddr_in * sa =( struct sockaddr_in *) malloc(sizeof(struct sockaddr_in));
+
+	sa->sin_family = AF_INET ;
+	sa->sin_port = htons(port) ;
+	sa->sin_addr.s_addr = INADDR_ANY ;
+  return (struct sockaddr*)sa;
+} 
+// fin de nos fonctions
+
 
 
 // Entetes des fonctions  
@@ -614,7 +636,7 @@ static void * f_com_socket(void *p_arg)
     
   if(sigprocmask(SIG_BLOCK, &signal_mask, NULL) == -1)
   {
-    printf("[Pourt joueur %d] Erreur sigprocmask\n", port);
+    printf("[Port joueur %d] Erreur sigprocmask\n", port);
     
     return 0;
   }
@@ -803,14 +825,53 @@ int main (int argc, char ** argv)
            }  
          }
 
-     
+
          /***** TO DO *****/
          
          // Initialisation socket et autres objets, et création thread pour communications avec joueur adverse
-       
+         //new -------------------------------------
+        FD_ZERO(&master);  // clear the master and temp sets
+        FD_ZERO(&read_fds);
+
+        struct sockaddr * sa= createSoc(port);
+
+        if (getaddrinfo(NULL, port, &sa, &servinfo) != 0){
+          fprintf(stderr, "Erreur getaddrinfo\n");
+          exit(1);
+        }
+        for(p = servinfo; != NULL; p = p->ai_next){
+          if ((sock_fd = socket(p->sin_family, p->sin_socktype, p->sin_protocol)) == -1) {
+            perror("Serveur: socket");
+          }
+
+          if (bind(sock_fd, p->sin_addr, p->sin_addrlen) == -1) {
+            close(sock_fd);
+            perror("Serveur: erreur bind");
+          }
+        }
+
+        
+
+        // if (p == NULL) {
+        //   fprintf(stderr, "Serveur: echec bind\n");
+        //   exit(2);
+        // }
+          
+        // freeaddrinfo(servinfo);
+
+        if (listen(sock_fd, 5) == -1) {
+          perror("listen");
+          exit(1);
+        }
+
+        FD_SET(sock_fd, &master); // Ajout sockfd à ensemble
+        
+        fdmax=sock_fd;   // Garde valeur max socket
 	 
-         gtk_widget_show_all(p_win);
-         gtk_main();
+        gtk_widget_show_all(p_win);
+        gtk_main();
+        
+        pthread_create(&thr_id, NULL, f_com_socket, &sock_fd);
       }
       else
       {
@@ -819,7 +880,11 @@ int main (int argc, char ** argv)
          g_error_free (p_err);
       }
    }
+
+   
+   // end -------------------------------------------------------
  
  
    return EXIT_SUCCESS;
 }
+

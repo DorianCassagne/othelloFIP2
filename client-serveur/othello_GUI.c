@@ -33,9 +33,10 @@
 
   pthread_t thr_id;	// Id du thread fils gerant connexion socket
   
-  int sockfd, newsockfd=-1; // descripteurs de socket
+  int sock_fd, newsockfd=-1; // descripteurs de socket
   int addr_size;	 // taille adresse
-  struct sockaddr *their_addr, *serveinfo, *p;	// structure pour stocker adresse adversaire
+  struct sockaddr *their_addr;
+  struct addrinfo *p, *serveinfo;	// structure pour stocker adresse adversaire
 
   fd_set master, read_fds, write_fds;	// ensembles de socket pour toutes les sockets actives avec select
   int fdmax;			// utilise pour select
@@ -45,10 +46,7 @@
   } threadArgs;
 
   
-  typedef struct {
-      char data[STRING_SIZE];
-      int code; // or real size of data
-  } query;
+
 
 /* Variables globales associées à l'interface graphique */
   GtkBuilder  *  p_builder   = NULL;
@@ -685,7 +683,7 @@ static void * f_com_socket(void *p_arg)
           
         }
       
-        if(i==sockfd)
+        if(i==sock_fd)
         { // Acceptation connexion adversaire
 	  
 	    
@@ -835,29 +833,29 @@ int main (int argc, char ** argv)
 
         struct sockaddr * sa= createSoc(port);
 
-        if (getaddrinfo(NULL, port, &sa, &servinfo) != 0){
-          fprintf(stderr, "Erreur getaddrinfo\n");
-          exit(1);
-        }
-        for(p = servinfo; != NULL; p = p->ai_next){
-          if ((sock_fd = socket(p->sin_family, p->sin_socktype, p->sin_protocol)) == -1) {
+        // if (getaddrinfo(NULL, &port, &sa, &serveinfo) != 0){
+        //   fprintf(stderr, "Erreur getaddrinfo\n");
+        //   exit(1);
+        // }
+        // for(p = serveinfo; p != NULL; p = p -> ai_next){
+          if ((sock_fd = socket( AF_INET,  SOCK_STREAM, 0)) == -1) {
             perror("Serveur: socket");
           }
 
-          if (bind(sock_fd, p->sin_addr, p->sin_addrlen) == -1) {
+          if (bind(sock_fd, sa, sizeof(struct sockaddr)) == -1) {
             close(sock_fd);
             perror("Serveur: erreur bind");
           }
-        }
+        // }
 
         
 
-        // if (p == NULL) {
+        // if (p == NULL) {LL
         //   fprintf(stderr, "Serveur: echec bind\n");
         //   exit(2);
         // }
           
-        // freeaddrinfo(servinfo);
+        // freeaddrinfo(serveinfo);
 
         if (listen(sock_fd, 5) == -1) {
           perror("listen");

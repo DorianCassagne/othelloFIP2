@@ -838,6 +838,7 @@ int main (int argc, char ** argv)
         //   exit(1);
         // }
         // for(p = serveinfo; p != NULL; p = p -> ai_next){
+
           if ((sock_fd = socket( AF_INET,  SOCK_STREAM, 0)) == -1) {
             perror("Serveur: socket");
           }
@@ -868,7 +869,6 @@ int main (int argc, char ** argv)
 	 
         gtk_widget_show_all(p_win);
         gtk_main();
-        
         pthread_create(&thr_id, NULL, f_com_socket, &sock_fd);
       }
       else

@@ -23,7 +23,7 @@
 
 
 /* Variables globales */
-  int damier[8][8];	// tableau associe au damier
+  int damier[8][8];	// tableau associe au damier [colone] [ligne]
   int couleur;		// 0 : pour noir, 1 : pour blanc
   
   int port;		// numero port passé lors de l'appel
@@ -45,8 +45,19 @@
     int socket; 
   } threadArgs;
 
-  
 
+  typedef struct{
+    int c;
+    int l;
+  } coor, vecteur;
+
+
+
+
+  typedef struct{
+    int nbret;
+    coor* pion_ret;
+  } result;
 
 /* Variables globales associées à l'interface graphique */
   GtkBuilder  *  p_builder   = NULL;
@@ -140,6 +151,64 @@ void reset_liste_joueurs(void);
 
 /* Fonction permettant d'ajouter un joueur dans la liste des joueurs sur l'interface graphique */
 void affich_joueur(char *login, char *adresse, char *port);
+
+
+
+result coup_valide(int col, int lig, int couleur);
+
+
+
+//******* debut implémentation regles *****************///
+
+
+bool dans_plateau(int col, int lig){
+  return !(col < 0 || col >= 8 || lig < 0 || lig >= 0);
+}
+
+bool case_vide(int col, int lig)
+{
+  return damier[col][lig] != -1;
+}
+
+int get_color(int col, int lig)
+{
+  if( (!dans_plateau(col, lig)) || case_vide(col, lig) )
+    return -1;
+  return damier[col][lig];
+}
+
+result retourne(int col, int lig, int couleur,vecteur v)
+{
+
+  result r;
+  int loop_value;
+  do 
+  {
+    col += v.c;
+    lig += v.l;
+    loop_value = get_color(col,lig);
+    //TODO add result
+
+  }while (loop_value!=couleur);
+
+  if(loop_value != -1)
+    return r;
+  
+  //free result
+  r.nbret = 0;
+  free()
+  
+}
+
+result coup_valide(int col, int lig, int couleur)
+{
+
+}
+
+
+
+
+//******* fin implémentation regles *****************///
 
 
 
@@ -822,6 +891,11 @@ int main (int argc, char ** argv)
              damier[i][j]=-1; 
            }  
          }
+
+         damier[3][3]=1; 
+         damier[4][3]=0; 
+         damier[4][4]=1; 
+         damier[3][4]=0; 
 
 
          /***** TO DO *****/

@@ -142,7 +142,7 @@ void gele_damier(void);
 
 /* Fonction activant les cases du damier */
 void degele_damier(void);
-
+gi
 /* Fonction permettant d'initialiser le plateau de jeu */
 void init_interface_jeu(void);
 
@@ -236,9 +236,11 @@ result* retourne(int col, int lig, int couleur,vecteur v)
     col += v.c;
     lig += v.l;
     loop_value = get_color(col,lig);
-    add_result(r, col,lig);/////////////////////////////////////////////////////////////////////BLKMMMMMM
+    if(loop_value!=couleur)
+      break;
+    add_result(r, col,lig);
 
-  }while (loop_value!=couleur);
+  }while (1);
 
   if(loop_value != -1)
     return r;

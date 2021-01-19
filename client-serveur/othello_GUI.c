@@ -20,7 +20,7 @@
 
 
 #define MAXDATASIZE 256
-
+#define VECTORNUMBER 8
 
 /* Variables globales */
   int damier[8][8];	// tableau associe au damier [colone] [ligne]
@@ -29,7 +29,7 @@
   int port;		// numero port passé lors de l'appel
 
   char *addr_j2, *port_j2;	// Info sur adversaire
-
+  int vecteur_dir[VECTORNUMBER][2] ={{0,1},{1,1},{1,0},{1,-1},{0,-1},{-1,-1},{-1,0},{-1,1}};
 
   pthread_t thr_id;	// Id du thread fils gerant connexion socket
   
@@ -154,7 +154,7 @@ void affich_joueur(char *login, char *adresse, char *port);
 
 
 
-result coup_valide(int col, int lig, int couleur);
+result* coup_valide(int col, int lig, int couleur);
 
 
 
@@ -177,32 +177,88 @@ int get_color(int col, int lig)
   return damier[col][lig];
 }
 
-result retourne(int col, int lig, int couleur,vecteur v)
+
+
+result* add_result(result* r,int c, int l){
+  r->nbret++;
+  r->pion_ret = realloc(r->pion_ret , r->nbret * sizeof(coor));
+  r->pion_ret[r->nbret -1].c = c;
+  r->pion_ret[r->nbret -1].l = l;
+}
+
+void vide_list_coor(coor* c,int size)
+{
+  // for(int i = 0;i < size; i++)
+  // {
+  //   free(c+i);
+  // }
+  free(c);
+}
+result* vide_result(result* r)
+{
+  vide_list_coor(r->pion_ret, r->nbret);
+  r->pion_ret=NULL;
+  r->nbret = 0;
+  return r;
+}
+
+void libere_result(result* r)
+{
+  vide_list_coor(r->pion_ret,r->nbret);
+  r->pion_ret=NULL;
+  free(r);
+}
+
+result* combine_result(result* r1, result* r2)
+{
+  r1->pion_ret = realloc(r1->pion_ret, (r1->nbret + r2->nbret) * sizeof(coor) );
+  for (int i = 0; i < r2->nbret; i++)
+  {
+    r1->pion_ret[r1->nbret].c = r2->pion_ret[i].c;
+    r1->pion_ret[r1->nbret].l = r2->pion_ret[i].l;
+    r1->nbret++;
+  }
+  libere_result(r2);
+  return r1;
+}
+
+
+
+result* retourne(int col, int lig, int couleur,vecteur v)
 {
 
-  result r;
+  result* r = (result *) malloc(sizeof(result));
+  r->nbret=0;
+  r->pion_ret=NULL;
   int loop_value;
   do 
   {
     col += v.c;
     lig += v.l;
     loop_value = get_color(col,lig);
-    //TODO add result
+    add_result(r, col,lig);/////////////////////////////////////////////////////////////////////BLKMMMMMM
 
   }while (loop_value!=couleur);
 
   if(loop_value != -1)
     return r;
   
-  //free result
-  r.nbret = 0;
-  free()
-  
+  return vide_result(r);
 }
 
-result coup_valide(int col, int lig, int couleur)
-{
 
+result* coup_valide(int col, int lig, int couleur)
+{
+  vecteur v;
+  v.c=vecteur_dir[0][0];
+  v.l=vecteur_dir[0][1];
+  result* r1 = retourne(col,lig,couleur,v);
+  for (int i =1; i < VECTORNUMBER;i++){
+    v.c=vecteur_dir[i][0];
+    v.l=vecteur_dir[i][1];
+    r1=combine_result(r1, retourne(col,lig,couleur,v));
+  }
+  return r1;
 }
 
 
@@ -213,7 +269,7 @@ result coup_valide(int col, int lig, int couleur)
 
 
 /* Fonction transforme coordonnees du damier graphique en indexes pour matrice du damier */
-void coord_to_indexes(const gchar *coord, int *col, int *lig)
+void coord_to_indexes(const char *coord, int *col, int *lig)
 {
   char *c;
   

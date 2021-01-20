@@ -175,14 +175,23 @@ result* coup_valide(int col, int lig, int couleur);
 
 //******* debut implémentation regles *****************///
 
+void affiche_res(result* r)
+{
+  printf("retourne %d pieces\n", r->nbret);
+  for (size_t i = 0; i < r->nbret; i++)
+  {
+    printf("   piece retourné c: %d  l: %d\n", r->pion_ret[i].c, r->pion_ret[i].c);
+  }
+  
+}
 
 bool dans_plateau(int col, int lig){
-  return !(col < 0 || col >= 8 || lig < 0 || lig >= 0);
+  return !(col < 0 || col >= 8 || lig < 0 || lig >= 8);
 }
 
 bool case_vide(int col, int lig)
 {
-  return damier[col][lig] != -1;
+  return damier[col][lig] == -1;
 }
 
 int get_color(int col, int lig)
@@ -199,6 +208,7 @@ result* add_result(result* r,int c, int l){
   r->pion_ret = realloc(r->pion_ret , r->nbret * sizeof(coor));
   r->pion_ret[r->nbret -1].c = c;
   r->pion_ret[r->nbret -1].l = l;
+  return r;
 }
 
 void vide_list_coor(coor* c,int size)
@@ -251,16 +261,16 @@ result* retourne(int col, int lig, int couleur,vecteur v)
     col += v.c;
     lig += v.l;
     loop_value = get_color(col,lig);
-    if(loop_value!=couleur)
-      break;
+    if(loop_value==-1){
+      return vide_result(r);
+    }
+    if(loop_value == couleur){
+      return r;
+    }
     add_result(r, col,lig);
 
   }while (1);
 
-  if(loop_value != -1)
-    return r;
-  
-  return vide_result(r);
 }
 
 
@@ -273,7 +283,7 @@ result* coup_valide(int col, int lig, int couleur)
   for (int i =1; i < VECTORNUMBER;i++){
     v.c=vecteur_dir[i][0];
     v.l=vecteur_dir[i][1];
-    r1=combine_result(r1, retourne(col,lig,couleur,v));
+    r1=combine_result(r1,retourne( col,lig,couleur,v));
   }
   return r1;
 }
@@ -1088,6 +1098,8 @@ int main (int argc, char ** argv)
          damier[4][3]=0; 
          damier[4][4]=1; 
          damier[3][4]=0; 
+
+         fflush(stdout);
 
 
          /***** TO DO *****/

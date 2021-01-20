@@ -180,7 +180,7 @@ void affiche_res(result* r)
   printf("retourne %d pieces\n", r->nbret);
   for (size_t i = 0; i < r->nbret; i++)
   {
-    printf("   piece retourné c: %d  l: %d\n", r->pion_ret[i].c, r->pion_ret[i].c);
+    printf("   piece retourné c: %d  l: %d\n", r->pion_ret[i].c, r->pion_ret[i].l);
   }
   
 }
@@ -204,6 +204,7 @@ int get_color(int col, int lig)
 
 
 result* add_result(result* r,int c, int l){
+  printf("youpi %d %d\n",c,l);
   r->nbret++;
   r->pion_ret = realloc(r->pion_ret , r->nbret * sizeof(coor));
   r->pion_ret[r->nbret -1].c = c;
@@ -276,13 +277,21 @@ result* retourne(int col, int lig, int couleur,vecteur v)
 
 result* coup_valide(int col, int lig, int couleur)
 {
+  if(!case_vide(col,lig)){
+    result* r =malloc(sizeof(result));
+    r->nbret=0;
+    r->pion_ret=NULL;
+    return r;
+  }
   vecteur v;
   v.c=vecteur_dir[0][0];
   v.l=vecteur_dir[0][1];
   result* r1 = retourne(col,lig,couleur,v);
+  affiche_res(r1);
   for (int i =1; i < VECTORNUMBER;i++){
     v.c=vecteur_dir[i][0];
     v.l=vecteur_dir[i][1];
+    affiche_res(retourne( col,lig,couleur,v));
     r1=combine_result(r1,retourne( col,lig,couleur,v));
   }
   return r1;
@@ -1099,7 +1108,7 @@ int main (int argc, char ** argv)
          damier[4][4]=1; 
          damier[3][4]=0; 
 
-         fflush(stdout);
+
 
 
          /***** TO DO *****/

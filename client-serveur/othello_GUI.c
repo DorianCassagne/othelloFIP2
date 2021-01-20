@@ -82,6 +82,13 @@ struct sockaddr * createSoc(int port) {
 	sa->sin_addr.s_addr = INADDR_ANY ;
   return (struct sockaddr*)sa;
 } 
+
+struct send_position{
+  uint16_t param;
+  uint16_t x;
+  uint16_t y;
+  uint16_t couleur;
+};
 // fin de nos fonctions
 
 
@@ -150,7 +157,7 @@ void gele_damier(void);
 
 /* Fonction activant les cases du damier */
 void degele_damier(void);
-gi
+
 /* Fonction permettant d'initialiser le plateau de jeu */
 void init_interface_jeu(void);
 
@@ -444,7 +451,7 @@ static void coup_joueur(GtkWidget *p_case)
 {
   int col, lig, type_msg, nb_piece, score;
   char buf[MAXDATASIZE];
-  struct send_position send;
+  struct send_position sendd;
   // Traduction coordonnees damier en indexes matrice damier
   coord_to_indexes(gtk_buildable_get_name(GTK_BUILDABLE(gtk_bin_get_child(GTK_BIN(p_case)))), &col, &lig);
 
@@ -455,9 +462,9 @@ static void coup_joueur(GtkWidget *p_case)
   
   gele_damier();
 
-  send.x = htons((uint16_t) col);
-  send.y = htons((uint16_t) lig);
-  snprintf(buf, MAXDATASIZE, "%u, %u", data_send.x data_send.y);
+  sendd.x = htons((uint16_t) col);
+  sendd.y = htons((uint16_t) lig);
+  snprintf(buf, MAXDATASIZE, "%u, %u", sendd.x, sendd.y);
 
   if (send(sock_fd, &buf, strlen(buf), 0) == -1){
     perror("send");

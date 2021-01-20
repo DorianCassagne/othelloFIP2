@@ -36,14 +36,22 @@
   int sock_fd, newsockfd=-1; // descripteurs de socket
   int addr_size;	 // taille adresse
   struct sockaddr *their_addr;
-  struct addrinfo *p, *serveinfo;	// structure pour stocker adresse adversaire
+  struct addrinfo s_init, *p, *serveinfo;	// structure pour stocker adresse adversaire
 
   fd_set master, read_fds, write_fds;	// ensembles de socket pour toutes les sockets actives avec select
   int fdmax;			// utilise pour select
 
+
+  //nos variables
+char msg[50];
+char head[2];
+uint16_t taille_msg;
+int srvc_fd;
   typedef struct{
     int socket; 
   } threadArgs;
+
+  //fin variables
 
 
   typedef struct{
@@ -436,13 +444,25 @@ static void coup_joueur(GtkWidget *p_case)
 {
   int col, lig, type_msg, nb_piece, score;
   char buf[MAXDATASIZE];
-  
+  struct send_position send;
   // Traduction coordonnees damier en indexes matrice damier
   coord_to_indexes(gtk_buildable_get_name(GTK_BUILDABLE(gtk_bin_get_child(GTK_BIN(p_case)))), &col, &lig);
-  
 
-  /***** TO DO *****/
-    
+  /***** TO DO info dernier coup joué et regle, coup valide*****/
+  
+  change_img_case(col, lig, couleur);
+
+  
+  gele_damier();
+
+  send.x = htons((uint16_t) col);
+  send.y = htons((uint16_t) lig);
+  snprintf(buf, MAXDATASIZE, "%u, %u", data_send.x data_send.y);
+
+  if (send(sock_fd, &buf, strlen(buf), 0) == -1){
+    perror("send");
+  }
+
 }
 
 /* Fonction retournant texte du champs adresse du serveur de l'interface graphique */
@@ -524,8 +544,29 @@ void affiche_fenetre_perdu(void)
 /* Fonction appelee lors du clique du bouton Se connecter */
 static void clique_connect_serveur(GtkWidget *b)
 {
+
   /***** TO DO *****/
   
+  // struct sockaddr_in * sa =( struct sockaddr_in *) malloc(sizeof(struct sockaddr_in));
+  
+
+	// sa->sin_family = AF_INET;
+
+	// sa->sin_port = htons(lecture_port_serveur());
+
+	// sa->sin_addr.s_addr = (long)inet_addr(lecture_addr_serveur());
+
+	// int sd = socket(AF_INET, SOCK_STREAM, 0);
+
+	// int error = connect(sd, (struct sockaddr*) &sa, sizeof(sa));
+  // printf("%d", error);
+  // fflush(stdout);
+	// if (error == -1) {
+	// 	return error;
+	// } else {
+  //   affich_joueur(lecture_login(), lecture_addr_serveur(),lecture_port_serveur());
+	// 	return sd;
+	// }
 }
 
 /* Fonction desactivant bouton demarrer partie */
@@ -718,6 +759,13 @@ void init_interface_jeu(void)
   
   /***** TO DO *****/
   
+  
+  while(1){
+    char position[MAXDATASIZE];
+    read(srvc_fd, position, MAXDATASIZE);
+    printf(position);
+  }
+  
 }
 
 /* Fonction reinitialisant la liste des joueurs sur l'interface graphique */
@@ -744,6 +792,7 @@ void affich_joueur(char *login, char *adresse, char *port)
 /* Fonction exécutée par le thread gérant les communications à travers la socket */
 static void * f_com_socket(void *p_arg)
 {
+  fflush(stdout);
   int i, nbytes, col, lig;
   
   char buf[MAXDATASIZE], *tmp, *p_parse;
@@ -754,10 +803,15 @@ static void * f_com_socket(void *p_arg)
   
   uint16_t type_msg, col_j2;
   uint16_t ucol, ulig;
-  
+
+  struct send_position data;
+  char *token;
+  char *saveptr;
   /* Association descripteur au signal SIGUSR1 */
   sigemptyset(&signal_mask);
+  fflush(stdout);
   sigaddset(&signal_mask, SIGUSR1);
+  fflush(stdout);
     
   if(sigprocmask(SIG_BLOCK, &signal_mask, NULL) == -1)
   {
@@ -765,7 +819,7 @@ static void * f_com_socket(void *p_arg)
     
     return 0;
   }
-    
+  fflush(stdout);
   fd_signal = signalfd(-1, &signal_mask, 0);
     
   if(fd_signal == -1)
@@ -774,7 +828,7 @@ static void * f_com_socket(void *p_arg)
 
     return 0;
   }
-
+  fflush(stdout);
   /* Ajout descripteur du signal dans ensemble de descripteur utilisé avec fonction select */
   FD_SET(fd_signal, &master);
   
@@ -783,7 +837,7 @@ static void * f_com_socket(void *p_arg)
     fdmax=fd_signal;
   }
 
-  
+  fflush(stdout);
   while(1)
   {
     read_fds=master;	// copie des ensembles
@@ -797,35 +851,108 @@ static void * f_com_socket(void *p_arg)
     printf("[Port joueur %d] Entree dans boucle for\n", port);
     for(i=0; i<=fdmax; i++)
     {
-      printf("[Port joueur %d] newsockfd=%d, iteration %d boucle for\n", port, newsockfd, i);
-
+      //printf("[Port joueur %d] newsockfd=%d, iteration %d boucle for\n", port, newsockfd, i);
+      //printf("toto, %i\n", FD_ISSET(i, &read_fds));
+      fflush(stdout);
       if(FD_ISSET(i, &read_fds))
-      {
+      { 
         if(i==fd_signal)
         {
           /* Cas où de l'envoie du signal par l'interface graphique pour connexion au joueur adverse */
-          
-          
           /***** TO DO *****/
           
+          int rv;
+          memset(&s_init, 0, sizeof(s_init));
+
+          s_init.ai_family = AF_UNSPEC;
+          s_init.ai_socktype = SOCK_STREAM;
+          rv = getaddrinfo(lecture_addr_adversaire(), lecture_port_adversaire(), &s_init, &serveinfo);
+          if(rv != 0) 
+          {
+            fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+            exit(1);
+          }
+          for(p = serveinfo; p != NULL; p = p->ai_next) 
+          {
+            if((sock_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
+              perror("client: socket");
+              continue;
+            }
+            if((connect(sock_fd, p->ai_addr, p->ai_addrlen)) == -1) {
+              close(sock_fd);
+              perror("client: connect");
+              continue;
+            }
+            break;
+          }
+            couleur = 1;
+            data.param = 0;
+            data.couleur = 0;
+
+            snprintf(buf, MAXDATASIZE, "%u, %u", data.param, data.couleur);
+            if(send(sock_fd, &buf, strlen(buf), 0) == -1){
+              perror("send");
+            }
+            init_interface_jeu();
         }
-      
         if(i==sock_fd)
         { // Acceptation connexion adversaire
-	  
 	    
           /***** TO DO *****/
-	    
-          gtk_widget_set_sensitive((GtkWidget *) gtk_builder_get_object (p_builder, "button_start"), FALSE);
+	        if (newsockfd == -1){
+              
+              addr_size = sizeof(their_addr);
+              newsockfd = accept(sock_fd, (struct sockaddr *) &their_addr, &addr_size);
+              if (newsockfd == -1) {
+                perror("accept");
+              }
+              printf("Serveur: connexion d'un joueur\n");
+              FD_SET(newsockfd, &master);
+              if (newsockfd > fdmax){
+                fdmax = newsockfd;
+              }
+              
+              recv(newsockfd, msg, MAXDATASIZE, 0);
+
+              token = strtok_r(buf, ",", &saveptr);
+              sscanf(token, "%u", &(data.param));
+              data.param = ntohs(data.param);
+
+              if (data.param == 0)
+              {
+                token = strtok_r(NULL, ",", &saveptr);
+                sscanf(token, "%u", &(data.couleur));
+                data.couleur = ntohs(data.couleur);
+                couleur = data.couleur;
+              }
+
+              init_interface_jeu();
+
+              gtk_widget_set_sensitive((GtkWidget *)
+                          gtk_builder_get_object
+                          (p_builder, "button_start"),
+                          FALSE);
+              
+          }
+        
+         
         }
         else
         { // Reception et traitement des messages du joueur adverse
-      
-      
-          /***** TO DO *****/
+            /***** TO DO *****/
+            if (i == newsockfd){
+              
+            }
+          
+          //recv(sock_fd, msg, 11, 0);
+          //printf("%s", msg);
+          
+          close(srvc_fd);
 
-	    
         }
+        //disable_button_start();
+        degele_damier();
+        
       }
     }
   }
@@ -998,10 +1125,11 @@ int main (int argc, char ** argv)
         FD_SET(sock_fd, &master); // Ajout sockfd à ensemble
         
         fdmax=sock_fd;   // Garde valeur max socket
-	 
+	      pthread_create(&thr_id, NULL, f_com_socket, &sock_fd);
         gtk_widget_show_all(p_win);
         gtk_main();
-        pthread_create(&thr_id, NULL, f_com_socket, &sock_fd);
+
+       
       }
       else
       {

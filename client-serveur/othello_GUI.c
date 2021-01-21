@@ -297,6 +297,20 @@ result* coup_valide(int col, int lig, int couleur)
   return r1;
 }
 
+bool fin_de_partie(int couleur)
+{
+  result* r =malloc(sizeof(result));
+  r->nbret=0;
+  r->pion_ret=NULL;
+  for(int i=0;i<8;i++)
+  {
+    for(int j=0;j<8;j++)
+    {
+      r = combine_result(r,coup_valide(i ,j ,couleur));
+    }
+  }
+  return (r->nbret == 0);
+}
 
 
 

@@ -40,7 +40,7 @@
 
   fd_set master, read_fds, write_fds;	// ensembles de socket pour toutes les sockets actives avec select
   int fdmax;			// utilise pour select
-
+  int couleurad;
 
   //nos variables
 char msg[MAXDATASIZE];
@@ -183,7 +183,7 @@ void pose_piece(int c, int l,int couleur);
 
 void change_couleur(result* r, int couleur);
 
-
+int get_couleur_adversaire(void);
 //******* debut implémentation regles *****************///
 
 void affiche_res(result* r)
@@ -193,9 +193,7 @@ void affiche_res(result* r)
   {
     printf("piece retourné c: %d  l: %d\n", r->pion_ret[i].c, r->pion_ret[i].l);
   }
-  
 }
-
 
 bool dans_plateau(int col, int lig){
   return !(col < 0 || col >= 8 || lig < 0 || lig >= 8);
@@ -326,8 +324,35 @@ bool fin_de_partie(int couleur)
   return (r->nbret == 0);
 }
 
+void change_score(){
+  int j1 = 0;
+  int j2 =0;
+  for (int i=0;i<8;i++)
+  {
+    for (int j=0;j<8;j++){
+      if(damier[i][j] == 0)
+        j1++;
+      if(damier[i][j] == 1)
+        j2++;
+      
+    }
+  }
+  printf("Score J1 : %d\n", j1);
+  printf("Score J2 : %d\n", j2);
+  set_score_J1(j1);
+  set_score_J2(j2);
+}
 
 
+int get_couleur_adversaire(){
+  if (couleur == 1){
+    return 0;
+    //set_score_J2(2); //mise à jour score adversaire
+  }else{
+    return 1;
+    //set_score_J1(2); //mise à jour score adversaire
+  }
+}
 //******* fin implémentation regles *****************///
 
 
@@ -345,7 +370,21 @@ void change_couleur(result* r, int couleur)
   }
 }
 
-
+void select_gagnant(){
+  int j1 = get_score_J1();
+  int j2 = get_score_J2();
+  if(couleur == 1){
+    int temps = j2;
+    j2=j1;
+    j1=temps;
+  }
+  if (j1 > j2){
+      affiche_fenetre_gagne();
+  }
+  else{
+    affiche_fenetre_perdu();
+  }
+}
 /* Fonction transforme coordonnees du damier graphique en indexes pour matrice du damier */
 void coord_to_indexes(const char *coord, int *col, int *lig)
 {
@@ -521,13 +560,14 @@ static void coup_joueur(GtkWidget *p_case)
 
   result *res = coup_valide(col, lig, couleur);
   if (res->nbret !=0 ){
-    //gele_damier();
+    
+    gele_damier();
     change_couleur(res, couleur);
     coor pion_pose;
     pion_pose.c=col;
     pion_pose.l=lig;
     printf("----------- New position send\n");
-
+    change_score();
     bzero(msg, MAXDATASIZE);
     snprintf(msg, MAXDATASIZE, "%u, %u", pion_pose.l, pion_pose.c);
     libere_result(res);
@@ -535,8 +575,13 @@ static void coup_joueur(GtkWidget *p_case)
       perror("send");
       close(newsockfd);
     }
-
   }
+  if (fin_de_partie(couleur)){
+    if (fin_de_partie(get_couleur_adversaire())){
+      select_gagnant();
+    }
+  }
+
 }
 
 /* Fonction retournant texte du champs adresse du serveur de l'interface graphique */
@@ -961,7 +1006,7 @@ static void * f_com_socket(void *p_arg)
 
               freeaddrinfo(servinfo);
               printf("Connection is OK\n");
-              FD_ISSET(newsockfd, &master);
+              FD_SET(newsockfd, &master);
               if (newsockfd > fdmax){
                   fdmax = newsockfd; 
               }
@@ -1049,21 +1094,21 @@ static void * f_com_socket(void *p_arg)
               token = strtok_r(NULL, ",", &saveptr);
               sscanf(token, "%u", &col);              
 
-              int couleurad;
-              if (couleur == 1){
-                couleurad = 0;
-              }else{
-                couleurad = 1;
-              }
-
-
-              printf(" Joueur %d joue col : %d et lig : %d\n", couleurad, col, lig);
-              result *res = coup_valide(col, lig, couleurad);
+          
+              printf(" Joueur %d joue col : %d et lig : %d\n", get_couleur_adversaire(), col, lig);
+              result *res = coup_valide(col, lig, get_couleur_adversaire());
 
               if (res->nbret !=0 ){
-                change_couleur(res, couleurad);
+                change_couleur(res, get_couleur_adversaire());
                 affiche_res(res);
               } 
+
+              change_score();
+               if (fin_de_partie(couleur)){
+                  if (fin_de_partie(get_couleur_adversaire())){
+                    select_gagnant();
+                  }
+                }
               libere_result(res);
               printf("Degele damier\n");
               degele_damier();

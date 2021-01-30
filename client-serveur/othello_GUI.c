@@ -69,7 +69,7 @@ int srvc_fd;
   typedef struct{
     int nbret;
     coor* pion_ret;
-  } result; //permet de retoun
+  } result; //permet de stoquer une liste de piece à placer
 
 /* Variables globales associées à l'interface graphique */
   GtkBuilder  *  p_builder   = NULL;
@@ -186,6 +186,7 @@ int get_couleur_adversaire(void);
 void send_position(result* r, int col, int lig);
 //******* debut implémentation regles *****************///
 
+//fonction de debug pour afficher ce qui est dans un resultat
 void affiche_res(result* r)
 {
   printf("retourne %d pieces\n", r->nbret);
@@ -195,10 +196,12 @@ void affiche_res(result* r)
   }
 }
 
+//renvoie vrai si la case demandé est hors du plateau
 bool dans_plateau(int col, int lig){
   return !(col < 0 || col >= 8 || lig < 0 || lig >= 8);
 }
 
+//renvoie vrai si la case est 
 bool case_vide(int col, int lig)
 {
   return damier[col][lig] == -1;
@@ -872,12 +875,13 @@ void init_interface_jeu(void)
   {
     set_label_J1("Vous");
     set_label_J2("Adversaire");
-    gele_damier();
+    
   }
   else
   {
     set_label_J1("Adversaire");
     set_label_J2("Vous");
+    gele_damier();
   }
 
   set_score_J1(2);
@@ -1023,9 +1027,9 @@ static void * f_com_socket(void *p_arg)
               FD_CLR(fd_signal, &master);
 
               //res->param = -1;
-              couleur = 0;
+              couleur = rand()%2;
               bzero(msg, MAXDATASIZE);
-              snprintf(msg, MAXDATASIZE, "%u", 1);
+              snprintf(msg, MAXDATASIZE, "%u", get_couleur_adversaire());
               if(send(newsockfd, &msg, strlen(msg), 0) == -1){
                perror("send");
               }
@@ -1246,22 +1250,11 @@ int main (int argc, char ** argv)
            }  
          }
 
-          for(i=1; i<8; i++)
-         {
-           for(j=0; j<8; j++)
-           {
-             pose_piece(j,i,rand()%2);
-           }  
-         }
-          pose_piece(0,0,0);
-          for(j=1; j<6; j++)
-           {
-             pose_piece(j,0,1);
-           }  
-         // pose_piece(3,3,1);
-          //pose_piece(4,3,0);
-         //pose_piece(4,4,1);
-        // pose_piece(3,4,0);
+         
+        pose_piece(3,3,1);
+        pose_piece(4,3,0);
+        pose_piece(4,4,1);
+        pose_piece(3,4,0);
 
 
          /***** TO DO *****/

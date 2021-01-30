@@ -29,7 +29,7 @@
   int port;		// numero port passé lors de l'appel
 
   char *addr_j2, *port_j2;	// Info sur adversaire
-  int vecteur_dir[VECTORNUMBER][2] ={{0,1},{1,1},{1,0},{1,-1},{0,-1},{-1,-1},{-1,0},{-1,1}};
+  int vecteur_dir[VECTORNUMBER][2] ={{0,1},{1,1},{1,0},{1,-1},{0,-1},{-1,-1},{-1,0},{-1,1}}; //tout les vecteur possible pour retourner les pieces
 
   pthread_t thr_id;	// Id du thread fils gerant connexion socket
   
@@ -57,21 +57,19 @@ int srvc_fd;
   typedef struct{
     int c;
     int l;
-  } coor, vecteur;
+  } coor, vecteur; //structure pour représenter un emplacement sur le plateau ou un vecteur direction
 
   
-  typedef struct{
-    coor pion_ret;
-    int param;
-    int couleur;
-  } coorResult;
+  // typedef struct{
+  //   coor pion_ret;
+  //   int param;
+  //   int couleur;
+  // } coorResult;
 
   typedef struct{
     int nbret;
     coor* pion_ret;
-    int param;
-    int couleur;
-  } result;
+  } result; //permet de retoun
 
 /* Variables globales associées à l'interface graphique */
   GtkBuilder  *  p_builder   = NULL;
@@ -184,6 +182,8 @@ void pose_piece(int c, int l,int couleur);
 void change_couleur(result* r, int couleur);
 
 int get_couleur_adversaire(void);
+
+void send_position(result* r, int col, int lig);
 //******* debut implémentation regles *****************///
 
 void affiche_res(result* r)
@@ -379,9 +379,11 @@ void select_gagnant(){
     j1=temps;
   }
   if (j1 > j2){
+      printf("affiche fenetre gagne\n");
       affiche_fenetre_gagne();
   }
   else{
+    printf("affiche fenetre perdu\n");
     affiche_fenetre_perdu();
   }
 }
@@ -556,34 +558,38 @@ static void coup_joueur(GtkWidget *p_case)
 
   /***** TO DO info dernier coup joué et regle, coup valide*****/
     
-  
-
   result *res = coup_valide(col, lig, couleur);
   if (res->nbret !=0 ){
-    
-    gele_damier();
-    change_couleur(res, couleur);
-    coor pion_pose;
-    pion_pose.c=col;
-    pion_pose.l=lig;
-    printf("----------- New position send\n");
-    change_score();
-    bzero(msg, MAXDATASIZE);
-    snprintf(msg, MAXDATASIZE, "%u, %u", pion_pose.l, pion_pose.c);
-    libere_result(res);
-    if (send(newsockfd, &msg, strlen(&msg), 0) == -1){
-      perror("send");
-      close(newsockfd);
-    }
-  }
-  if (fin_de_partie(couleur)){
+    send_position(res, col, lig);
+  }else if (fin_de_partie(couleur)){
     if (fin_de_partie(get_couleur_adversaire())){
+      printf("Fin de partie");
       select_gagnant();
     }
-  }
-
+    else{
+      printf("Ne peux pas jouer\n");
+      send_position(res, col, lig);
+      }
+    }
 }
 
+
+void send_position(result *res, int col, int lig){
+  gele_damier();
+  if (res->nbret !=0 ){
+    change_couleur(res, couleur);
+  } 
+  
+  printf("----------- New position send\n");
+  change_score();
+  bzero(msg, MAXDATASIZE);
+  snprintf(msg, MAXDATASIZE, "%u, %u", lig, col);
+  libere_result(res);
+  if (send(newsockfd, &msg, strlen(msg), 0) == -1){
+    perror("send");
+    close(newsockfd);
+  }
+}
 /* Fonction retournant texte du champs adresse du serveur de l'interface graphique */
 char *lecture_addr_serveur(void)
 {
@@ -1126,7 +1132,7 @@ static void * f_com_socket(void *p_arg)
 int main (int argc, char ** argv)
 {
 
-   int i, j, ret;
+   int i, j;
 
    if(argc!=2)
    {
@@ -1240,11 +1246,22 @@ int main (int argc, char ** argv)
            }  
          }
 
-
-          pose_piece(3,3,1);
-          pose_piece(4,3,0);
-         pose_piece(4,4,1);
-        pose_piece(3,4,0);
+          for(i=1; i<8; i++)
+         {
+           for(j=0; j<8; j++)
+           {
+             pose_piece(j,i,rand()%2);
+           }  
+         }
+          pose_piece(0,0,0);
+          for(j=1; j<6; j++)
+           {
+             pose_piece(j,0,1);
+           }  
+         // pose_piece(3,3,1);
+          //pose_piece(4,3,0);
+         //pose_piece(4,4,1);
+        // pose_piece(3,4,0);
 
 
          /***** TO DO *****/

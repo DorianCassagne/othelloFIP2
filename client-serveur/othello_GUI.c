@@ -53,11 +53,11 @@ int srvc_fd;
 
   //fin variables
 
-
+//structure pour représenter un emplacement sur le plateau ou un vecteur direction
   typedef struct{
     int c;
     int l;
-  } coor, vecteur; //structure pour représenter un emplacement sur le plateau ou un vecteur direction
+  } coor, vecteur; 
 
   
   // typedef struct{
@@ -66,10 +66,11 @@ int srvc_fd;
   //   int couleur;
   // } coorResult;
 
+//permet de stocker une liste de piece à placer
   typedef struct{
     int nbret;
     coor* pion_ret;
-  } result; //permet de stoquer une liste de piece à placer
+  } result; 
 
 /* Variables globales associées à l'interface graphique */
   GtkBuilder  *  p_builder   = NULL;
@@ -207,6 +208,7 @@ bool case_vide(int col, int lig)
   return damier[col][lig] == -1;
 }
 
+//recupere la couleur de la piece ou - si la case est vide ou hors du plateau
 int get_color(int col, int lig)
 {
   if( (!dans_plateau(col, lig)) || case_vide(col, lig) )
@@ -215,7 +217,7 @@ int get_color(int col, int lig)
 }
 
 
-
+//ajouter une coordonee a la strucure result
 result* add_result(result* r,int c, int l)
 {
   r->nbret++;
@@ -225,6 +227,7 @@ result* add_result(result* r,int c, int l)
   return r;
 }
 
+//free la liste de coordonee
 void vide_list_coor(coor* c,int size)
 {
   // for(int i = 0;i < size; i++)
@@ -233,6 +236,7 @@ void vide_list_coor(coor* c,int size)
   // }
   free(c);
 }
+//renvie un result videe de toute coordonee
 result* vide_result(result* r)
 {
   vide_list_coor(r->pion_ret, r->nbret);
@@ -241,6 +245,7 @@ result* vide_result(result* r)
   return r;
 }
 
+//free la structure result
 void libere_result(result* r)
 {
   vide_list_coor(r->pion_ret,r->nbret);
@@ -248,6 +253,7 @@ void libere_result(result* r)
   free(r);
 }
 
+//combine deux resultat ensemble
 result* combine_result(result* r1, result* r2)
 {
   r1->pion_ret = realloc(r1->pion_ret, (r1->nbret + r2->nbret) * sizeof(coor) );
@@ -262,7 +268,7 @@ result* combine_result(result* r1, result* r2)
 }
 
 
-
+//revoie un, result avec les pieces a retourner dans une direction donnee
 result* retourne(int col, int lig, int couleur,vecteur v)
 {
 
@@ -289,6 +295,7 @@ result* retourne(int col, int lig, int couleur,vecteur v)
 }
 
 
+//renvoie la liste de pice a retournee avec la piece nouvellement rajoute revoie un result vide si le placement n'est pas valide
 result* coup_valide(int col, int lig, int couleur)
 {
   if(!case_vide(col,lig)){
@@ -312,6 +319,7 @@ result* coup_valide(int col, int lig, int couleur)
   return r1;
 }
 
+//renvoie vrai si le joueur de la couleur passe en argument ne peu pas jouer
 bool fin_de_partie(int couleur)
 {
   result* r =malloc(sizeof(result));
@@ -327,6 +335,7 @@ bool fin_de_partie(int couleur)
   return (r->nbret == 0);
 }
 
+//calcul le score de chacun des jouer et le met a jour
 void change_score(){
   int j1 = 0;
   int j2 =0;
@@ -576,7 +585,7 @@ static void coup_joueur(GtkWidget *p_case)
     }
 }
 
-
+/* Fonction changeant la couleur des pions de notre plateau et envoie à l'adversaire notre pion joué */
 void send_position(result *res, int col, int lig){
   gele_damier();
   if (res->nbret !=0 ){
@@ -974,8 +983,6 @@ static void * f_com_socket(void *p_arg)
     printf("[Port joueur %d] Entree dans boucle for\n", port);
     for(i=0; i<=fdmax; i++)
     {
-      printf("i : %d\n", i);
-      printf("Test new %d\n", newsockfd);
       //printf("[Port joueur %d] newsockfd=%d, iteration %d boucle for\n", port, newsockfd, i);
       //printf("toto, %i\n", FD_ISSET(i, &read_fds));
       if(FD_ISSET(i, &read_fds))
@@ -985,7 +992,6 @@ static void * f_com_socket(void *p_arg)
         {
           /* Cas où de l'envoie du signal par l'interface graphique pour connexion au joueur adverse */
           /***** TO DO *****/
-          printf("i : %d and fd_signal %d\n", i, fd_signal);
           printf("connection\n");
           if (newsockfd == -1){
             int rv;
@@ -1039,10 +1045,8 @@ static void * f_com_socket(void *p_arg)
         }
         if(i==sock_fd)
         { // Acceptation connexion adversaire
-          printf("i : %d and sock_fd : %d\n", i, sock_fd);
           printf("Acceptation connexion adversaire\n");
           /***** TO DO *****/
-          printf("newsockfd %d\n", newsockfd);
 	        if (newsockfd == -1){
               
               addr_size = sizeof(their_addr);
@@ -1088,7 +1092,6 @@ static void * f_com_socket(void *p_arg)
         else
         { // Reception et traitement des messages du joueur adverse
             /***** TO DO *****/
-            printf("i : %d and newsockfd %d\n", i, newsockfd);
             if (i == newsockfd){
               
               printf("----------- Reception\n");
